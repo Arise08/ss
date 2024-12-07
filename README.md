@@ -1,4 +1,4 @@
--- Fixed Remote Pattern System
+-- Updated Pet Level System
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
@@ -39,10 +39,11 @@ local function initPetSystem()
         return
     end
 
-    -- Direct remote call matching spy pattern
-    local function fireRemote(action)
-        debugPrint("Firing remote with action:", action)
-        remote:FireServer(action)
+    -- Fire remote with exact pattern from spy
+    local function fireRemote(action, ...)
+        local args = {...}
+        debugPrint("Firing remote with args:", action, unpack(args))
+        remote:FireServer(action, unpack(args))
     end
 
     -- Get pet IDs
@@ -52,7 +53,6 @@ local function initPetSystem()
             if pet:FindFirstChild("GUID") and 
                pet:FindFirstChild("Owner") and 
                pet.Owner.Value == LocalPlayer then
-                
                 local guid = pet.GUID.Value
                 if guid then
                     table.insert(pets, {
@@ -67,43 +67,53 @@ local function initPetSystem()
         return pets
     end
 
-    -- Add XP to pet using correct pattern
+    -- Add XP to pet using observed patterns
     local function addXPToPet(petId, xpAmount)
         debugPrint("Attempting to add XP to pet:", petId)
-        -- Register pet
-        fireRemote("AddPetToAutoDelete")
+        
+        -- Try AddPetToAutoDelete first
+        fireRemote("AddPetToAutoDelete", petId)
         task.wait(0.1)
-        -- Add XP using correct pattern
-        fireRemote("AddXP")
+        
+        -- Try multiple XP adding patterns
+        fireRemote("AddXP", LocalPlayer, xpAmount)
+        task.wait(0.1)
+        fireRemote("AddXP", petId, xpAmount)
+        task.wait(0.1)
+        fireRemote("AddXP", {
+            petId = petId,
+            amount = xpAmount,
+            player = LocalPlayer
+        })
     end
 
-    -- Level all pets
-    local function levelUpAllPets(xpAmount)
-        local pets = getPetIds()
-        if #pets == 0 then
-            warn("No pets found!")
-            return
-        end
-
-        for _, pet in ipairs(pets) do
-            debugPrint("Processing pet:", pet.id)
-            addXPToPet(pet.id, xpAmount)
-            task.wait(0.5)
-        end
-    end
-
-    -- Test remote
+    -- Test remote connection
     local function testRemote()
         debugPrint("Testing remote pattern...")
         fireRemote("TestConnection")
+        
+        -- Also try some key actions
+        local pets = getPetIds()
+        if #pets > 0 then
+            local testPet = pets[1]
+            debugPrint("Testing with pet:", testPet.id)
+            
+            fireRemote("AddPetToAutoDelete", testPet.id)
+            task.wait(0.1)
+            
+            -- Try different XP values
+            local testXP = 100
+            fireRemote("AddXP", LocalPlayer, testXP)
+            task.wait(0.1)
+            fireRemote("AddXP", testPet.id, testXP)
+        end
     end
 
     return {
         levelUpPet = addXPToPet,
-        levelUpAllPets = levelUpAllPets,
         getPetIds = getPetIds,
         testRemote = testRemote,
-        remote = remote
+        fireRemote = fireRemote  -- Exposed for testing
     }
 end
 
