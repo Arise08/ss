@@ -1,4 +1,4 @@
--- Fixed Remote Execution System
+-- Fixed Remote Pattern System
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
@@ -7,7 +7,7 @@ local function debugPrint(...)
     print(string.format("[Debug] %s", table.concat({...}, " ")))
 end
 
--- Improved remote finder
+-- Find remote
 local function findRemote()
     for _, v in pairs(getgc(true)) do
         if type(v) == "table" then
@@ -16,11 +16,9 @@ local function findRemote()
                     local constants = debug.getconstants(value)
                     for _, constant in pairs(constants) do
                         if tostring(constant) == "FireServer" then
-                            debugPrint("Found remote function")
-                            -- Get the actual remote instance
                             for _, upvalue in pairs(debug.getupvalues(value)) do
                                 if typeof(upvalue) == "Instance" and upvalue:IsA("RemoteEvent") then
-                                    debugPrint("Found remote:", upvalue:GetFullName())
+                                    debugPrint("Found remote:", upvalue.Name)
                                     return upvalue
                                 end
                             end
@@ -41,18 +39,15 @@ local function initPetSystem()
         return
     end
 
-    -- Direct remote call
-    local function fireRemote(...)
-        local args = {...}
-        debugPrint("Firing remote with args:", unpack(args))
-        return remote:FireServer(...)
+    -- Direct remote call matching spy pattern
+    local function fireRemote(action)
+        debugPrint("Firing remote with action:", action)
+        remote:FireServer(action)
     end
 
-    -- Get pet IDs - using both workspace and potential networked data
+    -- Get pet IDs
     local function getPetIds()
         local pets = {}
-        
-        -- Try to get from workspace first
         for _, pet in pairs(workspace.Pets:GetChildren()) do
             if pet:FindFirstChild("GUID") and 
                pet:FindFirstChild("Owner") and 
@@ -69,35 +64,20 @@ local function initPetSystem()
                 end
             end
         end
-
         return pets
     end
 
-    -- Add XP to pet
+    -- Add XP to pet using correct pattern
     local function addXPToPet(petId, xpAmount)
         debugPrint("Attempting to add XP to pet:", petId)
-
-        -- First try to register the pet
-        fireRemote("AddPetToAutoDelete", petId)
+        -- Register pet
+        fireRemote("AddPetToAutoDelete")
         task.wait(0.1)
-
-        -- Try different XP adding patterns
-        -- Pattern 1: Direct XP add
-        fireRemote("AddXP", petId, xpAmount)
-        task.wait(0.1)
-
-        -- Pattern 2: With player reference
-        fireRemote("AddXP", LocalPlayer, xpAmount)
-        task.wait(0.1)
-
-        -- Pattern 3: As table
-        fireRemote("AddXP", {
-            petId = petId,
-            amount = xpAmount
-        })
+        -- Add XP using correct pattern
+        fireRemote("AddXP")
     end
 
-    -- Level up all pets
+    -- Level all pets
     local function levelUpAllPets(xpAmount)
         local pets = getPetIds()
         if #pets == 0 then
@@ -112,27 +92,10 @@ local function initPetSystem()
         end
     end
 
-    -- Test function to try different remote patterns
+    -- Test remote
     local function testRemote()
-        debugPrint("Testing remote patterns...")
-        
-        -- Test basic remote functionality
+        debugPrint("Testing remote pattern...")
         fireRemote("TestConnection")
-        task.wait(0.1)
-        
-        -- Get a pet to test with
-        local pets = getPetIds()
-        if #pets > 0 then
-            local testPet = pets[1]
-            debugPrint("Testing with pet:", testPet.id)
-            
-            -- Try different argument patterns
-            fireRemote("AddPetToAutoDelete", testPet.id)
-            task.wait(0.1)
-            fireRemote("AddXP", testPet.id, 100)
-            task.wait(0.1)
-            fireRemote("AddXP", LocalPlayer, 100)
-        end
     end
 
     return {
@@ -144,6 +107,4 @@ local function initPetSystem()
     }
 end
 
--- Create and return the system
-local petSystem = initPetSystem()
-return petSystem
+return initPetSystem()
