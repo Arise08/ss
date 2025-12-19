@@ -1,120 +1,59 @@
--- Updated Pet Level System
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
+# Interactive Content Editor
 
--- Debug print
-local function debugPrint(...)
-    print(string.format("[Debug] %s", table.concat({...}, " ")))
-end
+A modern, web-based content editor that allows you to add images, create text elements, and easily move and interact with content on a canvas.
 
--- Find remote
-local function findRemote()
-    for _, v in pairs(getgc(true)) do
-        if type(v) == "table" then
-            for key, value in pairs(v) do
-                if type(value) == "function" and islclosure(value) then
-                    local constants = debug.getconstants(value)
-                    for _, constant in pairs(constants) do
-                        if tostring(constant) == "FireServer" then
-                            for _, upvalue in pairs(debug.getupvalues(value)) do
-                                if typeof(upvalue) == "Instance" and upvalue:IsA("RemoteEvent") then
-                                    debugPrint("Found remote:", upvalue.Name)
-                                    return upvalue
-                                end
-                            end
-                        end
-                    end
-                end
-            end
-        end
-    end
-    return nil
-end
+## Features
 
--- Initialize system
-local function initPetSystem()
-    local remote = findRemote()
-    if not remote then
-        warn("Failed to find remote!")
-        return
-    end
+- ✨ **Add Text Elements** - Click the "Text" button to add editable text boxes
+- 🖼️ **Add Images** - Upload images by clicking the "Image" button or drag & drop images onto the canvas
+- 🖱️ **Drag & Drop** - Click and drag any element to move it around the canvas
+- 📏 **Resize Images** - Use the corner handles to resize image elements
+- ✏️ **Edit Text** - Double-click any text element to edit its content
+- 🎨 **Customize Properties** - Select any element to edit its properties in the right panel
+- ⌨️ **Keyboard Shortcuts**:
+  - `Delete` or `Backspace` - Delete selected element
+  - `Escape` - Deselect all elements
+- 💾 **Export** - Download your canvas as a PNG image
 
-    -- Fire remote with exact pattern from spy
-    local function fireRemote(action, ...)
-        local args = {...}
-        debugPrint("Firing remote with args:", action, unpack(args))
-        remote:FireServer(action, unpack(args))
-    end
+## How to Use
 
-    -- Get pet IDs
-    local function getPetIds()
-        local pets = {}
-        for _, pet in pairs(workspace.Pets:GetChildren()) do
-            if pet:FindFirstChild("GUID") and 
-               pet:FindFirstChild("Owner") and 
-               pet.Owner.Value == LocalPlayer then
-                local guid = pet.GUID.Value
-                if guid then
-                    table.insert(pets, {
-                        id = guid,
-                        name = pet.Name,
-                        model = pet
-                    })
-                    debugPrint("Found pet:", guid)
-                end
-            end
-        end
-        return pets
-    end
+1. **Open the app**: Simply open `index.html` in a modern web browser
+2. **Add content**: 
+   - Click "Text" to add a text element
+   - Click "Image" to upload an image file
+   - Or drag and drop image files directly onto the canvas
+3. **Edit text**: Double-click any text element to edit its content
+4. **Move elements**: Click and drag any element to reposition it
+5. **Resize images**: Click and drag the corner handles on image elements
+6. **Customize**: Select an element to see its properties panel on the right
+7. **Delete**: Select an element and click "Delete" or press Delete/Backspace
+8. **Export**: Click "Download" to save your canvas as an image
 
-    -- Add XP to pet using observed patterns
-    local function addXPToPet(petId, xpAmount)
-        debugPrint("Attempting to add XP to pet:", petId)
-        
-        -- Try AddPetToAutoDelete first
-        fireRemote("AddPetToAutoDelete", petId)
-        task.wait(0.1)
-        
-        -- Try multiple XP adding patterns
-        fireRemote("AddXP", LocalPlayer, xpAmount)
-        task.wait(0.1)
-        fireRemote("AddXP", petId, xpAmount)
-        task.wait(0.1)
-        fireRemote("AddXP", {
-            petId = petId,
-            amount = xpAmount,
-            player = LocalPlayer
-        })
-    end
+## Properties Panel
 
-    -- Test remote connection
-    local function testRemote()
-        debugPrint("Testing remote pattern...")
-        fireRemote("TestConnection")
-        
-        -- Also try some key actions
-        local pets = getPetIds()
-        if #pets > 0 then
-            local testPet = pets[1]
-            debugPrint("Testing with pet:", testPet.id)
-            
-            fireRemote("AddPetToAutoDelete", testPet.id)
-            task.wait(0.1)
-            
-            -- Try different XP values
-            local testXP = 100
-            fireRemote("AddXP", LocalPlayer, testXP)
-            task.wait(0.1)
-            fireRemote("AddXP", testPet.id, testXP)
-        end
-    end
+When you select an element, you can edit:
 
-    return {
-        levelUpPet = addXPToPet,
-        getPetIds = getPetIds,
-        testRemote = testRemote,
-        fireRemote = fireRemote  -- Exposed for testing
-    }
-end
+**For Text Elements:**
+- Text content
+- Font size (12-72px)
+- Text color
+- Font weight (Normal/Bold)
+- Text alignment (Left/Center/Right)
+- Position (X, Y coordinates)
 
-return initPetSystem()
+**For Image Elements:**
+- Width and height
+- Position (X, Y coordinates)
+
+## Technical Details
+
+- Pure HTML, CSS, and JavaScript (no dependencies)
+- Works in all modern browsers
+- Responsive design with a beautiful gradient background
+- Canvas-based editing with grid background for alignment
+
+## Files
+
+- `index.html` - Main HTML structure
+- `styles.css` - Styling and layout
+- `app.js` - Core functionality and interactions
