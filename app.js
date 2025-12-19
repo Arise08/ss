@@ -29,7 +29,7 @@ class ContentEditor {
 
         // Canvas click to deselect
         this.canvas.addEventListener('click', (e) => {
-            if (e.target === this.canvas || e.target.classList.contains('canvas-grid')) {
+            if (e.target === this.canvas) {
                 this.deselectAll();
             }
         });
